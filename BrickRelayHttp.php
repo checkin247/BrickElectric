@@ -38,11 +38,18 @@ class Relay
 	 * an array which holds the information of the relay channels
 	 */
 	public $relay;
+
+	/**
+	 * @var string $password
+	 * the password to use to connect to the relay board
+	 */
+	private $password;
 	
-	function __construct($ip, $port = 80, $type = 'BEM104')
+	function __construct($ip, $port = 80, $password = '123456', $type = '104')
 	{
 		$this->ip = $ip;
 		$this->port = $port;
+		$this->password = $password;
 		$this->connect();
 
 		$this->constructRelay($type);
@@ -132,6 +139,136 @@ class Relay
 	}
 
 	/**
+	 * set a new password for the relay board
+	 * TODO: don't enable,
+	 * we can set a new password, but can't figure 
+	 * how to send commands with password afterwards
+	 *
+	 * @param string $password
+	 * the new password for the relay board
+	 * must be 6bit long
+	 *
+	 * @param string $oldPassword
+	 * the old password of the relay board
+	 *
+	 * @return string html response from server
+	 */
+	public function setPassword($password, $oldPassword = '123456')
+	{
+		if( strlen($password) != 6)
+			return(-1);
+
+		$command = 'pw='.$oldPassword.'&newpw='.$password;
+		$command .= '&pwenable=1&save=1&reboot=1';
+		return $this->send($command);
+	}
+
+	/**
+	 * disable password protection of the relay board
+	 *
+	 * @param string $password
+	 * the password for the relay board
+	 *
+	 * @return string html response from server
+	 */
+	public function disablePassword($password)
+	{
+		$command = 'pw='.$oldPassword;
+		$command .= '&pwenable=0&save=1';
+		return $this->send($command);
+	}
+
+	/**
+	 * disable password protection and recover default
+	 *
+	 * @param string $password
+	 * the current password of the relay board
+	 *
+	 * @return string html response from server
+	 */
+	public function restoreDefaultPassword($password)
+	{
+		$command = 'pw='.$password.'&newpw=123456';
+		$command .= '&pwenable=0&save=1&reboot=1';
+		return $this->send($command);
+	}
+
+	/**
+	 * get device info
+	 *
+	 * @return array
+	 * deviceInfo, firmwareVersion, relayType, serialNumer
+	 */
+	public function getInfo()
+	{
+		// device name
+		$command = 'getpara[97]=1';
+		// firmware version
+		$command .= '&getpara[98]=1';
+		// relay type
+		$command .= '&getpara[99]=1';
+		// serial number
+		$command .= '&getpara[100]=1';
+
+		$response = $this->sendContents($command);
+		$html = (DOMDocument::loadHTML($response))->textContent;
+
+		preg_match('/(GETPARA\[97\]) (.) (\w+)/', $html, $matches);
+		$deviceName = $matches[3];
+
+		preg_match('/(GETPARA\[98\]) (.) (\w+\.[0-9].([0-9])+)/', $html, $matches);
+		$firmwareVersion = $matches[3];
+
+		preg_match('/(GETPARA\[99\]) (.) (\w+)/', $html, $matches);
+		$relayType = $matches[3];
+
+		preg_match('/(GETPARA\[100\]) (.) (\w+)/', $html, $matches);
+		$serialNumer = $matches[3];
+
+		$response = [
+			'deviceName' => $deviceName,
+			'firmwareVersion' => $firmwareVersion,
+			'relayType' => $relayType,
+			'serialNumer' => $serialNumer,
+		];
+
+		return $response;
+	}
+
+	/**
+	 * get the firmware version
+	 *
+	 * @return string html response from server
+	 */
+	public function getFirmwareVersion()
+	{
+		$command = 'getpara[98]=1';
+		return $this->sendContents($command);
+	}
+
+	/**
+	 * get the relay type
+	 *
+	 * @return string html response from server
+	 */
+	public function getRelayType()
+	{
+		$command = 'getpara[99]=1';
+		return $this->sendContents($command);
+	}
+
+	/**
+	 * get the serial number
+	 *
+	 * @return string html response from server
+	 */
+	public function getSerialNumber()
+	{
+		$command = 'getpara[100]=1';
+		return $this->sendContents($command);
+	}
+
+	/**
 	 * set the lan adapter to this new configuration
 	 *
 	 * @param string $ip
@@ -156,6 +293,24 @@ class Relay
 	}
 
 	/**
+	 * DON'T USE
+	 * Does not seem to work
+	 *
+	 * set the port of the internal web server
+	 * of the relay board
+	 *
+	 * @param int $port
+	 *
+	 * @return string html response from server
+	 */
+	public function setHttpPort(int $port)
+	{
+		$command = 'webport='.$port;
+		$command .= '&save=1&reboot=1';
+		return $this->send($command);
+	}
+
+	/**
 	 * turn DHCP mode on or off
 	 *
 	 * @param boolean $mode
@@ -163,7 +318,7 @@ class Relay
 	 *
 	 * @return string html response from server
 	 */
-	public function setDHCP($mode)
+	public function setDHCP(bool $mode)
 	{
 		if( $mode )
 			$command = 'dhcp=1';
@@ -199,7 +354,7 @@ class Relay
 	private function constructRelay($type)
 	{
 		switch ($type) {
-			case 'BEM104':
+			case '104':
 			default:
 				$relays = 2;
 				break;
@@ -259,7 +414,22 @@ class Relay
 		if( ! $this->status )
 			return false;
 
+		// add password
+		// TODO: don't enable, won't work
+		// if( $this->password != '123456' )
+		// 	$command .= '&pw='.$this->password;
+
 		$response = $this->client->request('GET', 'http://'.$this->ip.':'.$this->port.'/'.$command);
 		return $response->getBody();
+	}
+
+	/**
+	 * some methods do not work with guzzle
+	 * assuming undocumented headers
+	 * use file_get_contents works
+	 */
+	public function sendContents($command)
+	{
+		return file_get_contents('http://'.$this->ip.':'.$this->port.'/'.$command);
 	}
 }

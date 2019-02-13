@@ -210,8 +210,7 @@ class Relay
 		// serial number
 		$command .= '&getpara[100]=1';
 
-		$response = $this->sendContents($command);
-		$html = (DOMDocument::loadHTML($response))->textContent;
+		$html = $this->sendContents($command);
 
 		preg_match('/(GETPARA\[97\]) (.) (\w+)/', $html, $matches);
 		$deviceName = $matches[3];
@@ -419,8 +418,9 @@ class Relay
 		// if( $this->password != '123456' )
 		// 	$command .= '&pw='.$this->password;
 
-		$response = $this->client->request('GET', 'http://'.$this->ip.':'.$this->port.'/'.$command);
-		return $response->getBody();
+		$response = ($this->client->request('GET', 'http://'.$this->ip.':'.$this->port.'/'.$command))->getBody();
+		$html = (DOMDocument::loadHTML($response))->textContent;
+		return $html;
 	}
 
 	/**
@@ -430,6 +430,8 @@ class Relay
 	 */
 	public function sendContents($command)
 	{
-		return file_get_contents('http://'.$this->ip.':'.$this->port.'/'.$command);
+		$response = file_get_contents('http://'.$this->ip.':'.$this->port.'/'.$command);
+		$html = (DOMDocument::loadHTML($response))->textContent;
+		return $html;
 	}
 }

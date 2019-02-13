@@ -419,6 +419,7 @@ class Relay
 		// 	$command .= '&pw='.$this->password;
 
 		$response = ($this->client->request('GET', 'http://'.$this->ip.':'.$this->port.'/'.$command))->getBody();
+		// strip <html><body>...</body></html>
 		$html = (DOMDocument::loadHTML($response))->textContent;
 		return $html;
 	}
@@ -431,6 +432,7 @@ class Relay
 	public function sendContents($command)
 	{
 		$response = file_get_contents('http://'.$this->ip.':'.$this->port.'/'.$command);
+		// strip <html><body>...</body></html>
 		$html = (DOMDocument::loadHTML($response))->textContent;
 		return $html;
 	}

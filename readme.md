@@ -12,6 +12,10 @@ run `composer install`
 
 test examples in "index.php"
 
+## How to
+
+Well documented code "BrickRelayHttp.php" 
+
 ## About
 Tested with [BEM104](https://www.brickelectric.com/io-system-c-2/bem104-laninternet-2-channel-relay-board-524v-supply-p-34.html)
 

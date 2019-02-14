@@ -197,7 +197,7 @@ class Relay
 	 * get device info
 	 *
 	 * @return array
-	 * deviceInfo, firmwareVersion, relayType, serialNumer
+	 * deviceInfo, firmwareVersion, relayType, serialNumber
 	 */
 	public function getInfo()
 	{
@@ -222,13 +222,13 @@ class Relay
 		$relayType = $matches[3];
 
 		preg_match('/(GETPARA\[100\]) (.) (\w+)/', $html, $matches);
-		$serialNumer = $matches[3];
+		$serialNumber = $matches[3];
 
 		$response = [
 			'deviceName' => $deviceName,
 			'firmwareVersion' => $firmwareVersion,
 			'relayType' => $relayType,
-			'serialNumer' => $serialNumer,
+			'serialNumber' => $serialNumber,
 		];
 
 		return $response;
